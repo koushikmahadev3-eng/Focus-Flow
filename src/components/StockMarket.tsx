@@ -54,30 +54,25 @@ export default function StockMarket() {
     };
 
     return (
-        <div className="bg-white rounded-[30px] p-8 shadow-sm border border-gray-100">
-            <div className="flex items-center justify-between mb-6">
-                <div>
-                    <h2 className="text-2xl font-black text-gray-800 flex items-center gap-2">
-                        <TrendingUp className="text-indigo-600" /> Market
-                    </h2>
-                    <p className="text-sm text-gray-500 font-medium">Invest your Study Points</p>
-                </div>
-                <div className="bg-indigo-50 px-4 py-2 rounded-xl text-indigo-700 font-bold text-sm flex items-center gap-2">
-                    <Briefcase size={16} />
-                    {Object.values(portfolio).reduce((a, b) => a + b, 0)} Assets
+        <div className="space-y-4">
+            <div className="flex items-center justify-between mb-4 px-2">
+                <div className="text-[10px] text-[var(--text-secondary)] uppercase tracking-widest font-bold">Ticker</div>
+                <div className="text-[10px] text-[var(--accent-acid)] uppercase tracking-widest font-bold flex items-center gap-2">
+                    <Briefcase size={12} />
+                    {Object.values(portfolio).reduce((a, b) => a + b, 0)} Units
                 </div>
             </div>
 
-            <div className="space-y-4">
+            <div className="space-y-2">
                 {MOCK_STOCKS.map(stock => (
-                    <div key={stock.symbol} className="flex items-center justify-between p-4 rounded-2xl border border-gray-50 hover:bg-gray-50 transition-colors group">
+                    <div key={stock.symbol} className="flex items-center justify-between p-3 rounded-sm border border-white/5 bg-white/5 hover:bg-white/10 transition-colors group">
                         <div className="flex items-center gap-4">
-                            <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-white text-xs ${stock.change >= 0 ? 'bg-green-500' : 'bg-red-500'}`}>
+                            <div className={`w-8 h-8 rounded-sm flex items-center justify-center font-bold text-black text-[10px] ${stock.change >= 0 ? 'bg-[var(--accent-acid)]' : 'bg-[var(--accent-alert)]'}`}>
                                 {stock.symbol.substring(0, 1)}
                             </div>
                             <div>
-                                <div className="font-bold text-gray-800">{stock.symbol}</div>
-                                <div className={`text-xs font-bold flex items-center gap-1 ${stock.change >= 0 ? 'text-green-600' : 'text-red-500'}`}>
+                                <div className="font-bold text-white text-sm tracking-wide">{stock.symbol}</div>
+                                <div className={`text-[10px] font-mono flex items-center gap-1 ${stock.change >= 0 ? 'text-[var(--accent-acid)]' : 'text-[var(--accent-alert)]'}`}>
                                     {stock.change >= 0 ? <TrendingUp size={10} /> : <TrendingDown size={10} />}
                                     {stock.change}%
                                 </div>
@@ -86,14 +81,14 @@ export default function StockMarket() {
 
                         <div className="text-right flex items-center gap-4">
                             <div>
-                                <div className="font-mono font-bold text-gray-800">💎 {stock.price}</div>
-                                <div className="text-[10px] text-gray-400 uppercase tracking-wider">
-                                    Owned: {portfolio[stock.symbol] || 0}
+                                <div className="font-mono font-bold text-white text-sm">💎 {stock.price}</div>
+                                <div className="text-[10px] text-[var(--text-secondary)] uppercase">
+                                    QTY: {portfolio[stock.symbol] || 0}
                                 </div>
                             </div>
                             <div className="flex flex-col gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                <button onClick={() => handleBuy(stock)} className="px-3 py-1 bg-green-100 text-green-700 rounded-lg text-xs font-bold hover:bg-green-200">Buy</button>
-                                <button onClick={() => handleSell(stock)} className="px-3 py-1 bg-gray-100 text-gray-600 rounded-lg text-xs font-bold hover:bg-gray-200">Sell</button>
+                                <button onClick={() => handleBuy(stock)} className="px-2 py-0.5 bg-[var(--accent-acid)] text-black rounded-sm text-[10px] font-bold hover:bg-white">BUY</button>
+                                <button onClick={() => handleSell(stock)} className="px-2 py-0.5 border border-white/20 text-white rounded-sm text-[10px] font-bold hover:bg-white/10">SELL</button>
                             </div>
                         </div>
                     </div>

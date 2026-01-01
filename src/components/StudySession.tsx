@@ -4,11 +4,11 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import Webcam from 'react-webcam';
 import * as tf from '@tensorflow/tfjs';
 import * as blazeface from '@tensorflow-models/blazeface';
-import { Timer, Eye, EyeOff, AlertTriangle, Play, Pause, Scan, CheckCircle2 } from 'lucide-react';
+import { Play, Pause, Scan, EyeOff, checkCircle2, Maximize2 } from 'lucide-react';
 
 const SPONSORS = [
-    { name: 'Physics Wala', text: 'Master concepts with India\'s best teachers!', color: '#eef2ff', textCol: '#4338ca' }, // Indigo-ish
-    { name: 'Academic', text: 'Your learning journey starts here.', color: '#f0fdfa', textCol: '#0f766e' }   // Teal-ish
+    { name: 'Physics Wala', text: 'Master Mode Active', color: '#1A1D21', textCol: '#CCFF00' },
+    { name: 'Academic', text: 'Telemetry Online', color: '#1A1D21', textCol: '#CCFF00' }
 ];
 
 interface StudySessionProps {
@@ -20,42 +20,53 @@ export default function StudySession({ initialDuration = 25, isCommuteMode = fal
     const [isActive, setIsActive] = useState(false);
     const [timeLeft, setTimeLeft] = useState(initialDuration * 60);
     const [points, setPoints] = useState(0);
-    const [sessionDuration, setSessionDuration] = useState(0);
     const [model, setModel] = useState<any>(null);
     const [isFaceDetected, setIsFaceDetected] = useState(true);
     const [isTabActive, setIsTabActive] = useState(true);
     const [permissionRequested, setPermissionRequested] = useState(false);
     const webcamRef = useRef<Webcam>(null);
     const timerRef = useRef<NodeJS.Timeout>(null);
-    const adIntervalRef = useRef<NodeJS.Timeout>(null);
-    const [currentSponsorIndex, setCurrentSponsorIndex] = useState(0);
+    const [modelError, setModelError] = useState(false);
 
-    // Persistence: Load initial points
+    // Persistence
     useEffect(() => {
         const savedPoints = localStorage.getItem('userParams_points');
         if (savedPoints) setPoints(parseInt(savedPoints));
     }, []);
 
-    // Persistence: Save points on change
     useEffect(() => {
         localStorage.setItem('userParams_points', points.toString());
     }, [points]);
 
+    // Load AI Model
     useEffect(() => {
         const loadModel = async () => {
-            await tf.ready();
-            const loadedModel = await blazeface.load();
-            setModel(loadedModel);
+            try {
+                await tf.ready();
+                const loadedModel = await blazeface.load();
+                setModel(loadedModel);
+            } catch (err) {
+                console.error("Failed to load model", err);
+                setModelError(true);
+            }
         };
         loadModel();
     }, []);
 
+    // Face Detection Loop
     const checkFace = useCallback(async () => {
         if (!model || !webcamRef.current || !webcamRef.current.video) return;
+
+        if (webcamRef.current.video.readyState !== 4) return;
+
         if (isActive && !permissionRequested) {
             const returnTensors = false;
-            const predictions = await model.estimateFaces(webcamRef.current.video, returnTensors);
-            setIsFaceDetected(predictions.length > 0);
+            try {
+                const predictions = await model.estimateFaces(webcamRef.current.video, returnTensors);
+                setIsFaceDetected(predictions.length > 0);
+            } catch (err) {
+                console.warn("Face detection error", err);
+            }
         }
     }, [model, isActive, permissionRequested]);
 
@@ -64,6 +75,7 @@ export default function StudySession({ initialDuration = 25, isCommuteMode = fal
         return () => clearInterval(interval);
     }, [checkFace]);
 
+    // Tab Visibility
     useEffect(() => {
         const handleVisibilityChange = () => {
             setIsTabActive(document.visibilityState === 'visible');
@@ -72,154 +84,142 @@ export default function StudySession({ initialDuration = 25, isCommuteMode = fal
         return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
     }, []);
 
+    // Timer Logic
     useEffect(() => {
         if (isActive && isFaceDetected && isTabActive) {
             timerRef.current = setInterval(() => {
                 setTimeLeft((prev) => (prev <= 1 ? 0 : prev - 1));
-                setSessionDuration(prev => {
-                    const newDuration = prev + 1;
-                    // Base: 2 pts/min (every 30s = 1pt). Commute: 3 pts/min (1.5x).
-                    const pointInterval = isCommuteMode ? 20 : 30;
-                    if (newDuration % pointInterval === 0) setPoints(p => p + 1);
-                    return newDuration;
-                });
+
+                // Points logic
+                const pointInterval = isCommuteMode ? 20 : 30;
+                if (timeLeft % pointInterval === 0 && timeLeft > 0) {
+                    setPoints(p => p + 1);
+                }
             }, 1000);
         } else {
             if (timerRef.current) clearInterval(timerRef.current);
         }
         return () => { if (timerRef.current) clearInterval(timerRef.current); };
-    }, [isActive, isFaceDetected, isTabActive]);
+    }, [isActive, isFaceDetected, isTabActive, isCommuteMode, timeLeft]);
 
-    useEffect(() => {
-        adIntervalRef.current = setInterval(() => {
-            setCurrentSponsorIndex(prev => (prev + 1) % SPONSORS.length);
-        }, 60000);
-        return () => { if (adIntervalRef.current) clearInterval(adIntervalRef.current); };
-    }, []);
 
-    const formatTime = (seconds: number) => {
-        const mins = Math.floor(seconds / 60);
-        const secs = seconds % 60;
-        return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
-    };
-
-    const currentSponsor = SPONSORS[currentSponsorIndex];
+    // Visual Math
+    const radius = 120;
+    const stroke = 8;
+    const normalizedRadius = radius - stroke * 2;
+    const circumference = normalizedRadius * 2 * Math.PI;
+    const strokeDashoffset = circumference - ((timeLeft / (initialDuration * 60)) * circumference);
+    const modelLoaded = !!model;
 
     return (
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+        <div className="w-full h-full flex flex-col items-center justify-center relative">
 
-            {/* LEFT: Main Focus Area */}
-            <div className="lg:col-span-8 space-y-6">
-
-                {/* Header Card */}
-                <div className="bg-white rounded-[30px] p-8 shadow-sm border border-gray-100 flex items-center justify-between">
-                    <div>
-                        <h2 className="text-3xl font-black text-gray-800 flex items-center gap-3">
-                            {isActive ? '🎯 Deep Focus' : '☕ Ready to Study?'}
-                        </h2>
-                        <p className="text-gray-500 mt-1 font-medium">Keep your camera on to update your stats.</p>
-                    </div>
-                    <div className="text-right">
-                        <div className="text-5xl font-black text-indigo-600 tracking-tight">{formatTime(timeLeft)}</div>
-                        <div className="text-xs font-bold text-gray-400 uppercase tracking-widest mt-1">Timer</div>
-                    </div>
+            {/* Status Header */}
+            <div className="absolute top-0 w-full flex justify-between items-center px-4 py-2 border-b border-white/5">
+                <div className="text-[10px] uppercase tracking-widest text-[var(--accent-acid)] animate-pulse">
+                    {isActive ? '● SYSTEM ENGAGED' : '○ STANDBY'}
                 </div>
+                <div className="text-[10px] font-mono text-[var(--text-secondary)]">
+                    AI_MONITORING: {modelLoaded ? 'ACTIVE' : 'INITIALIZING'}
+                </div>
+            </div>
 
-                {/* Webcam / Status Area */}
-                <div className="bg-gray-900 rounded-[30px] overflow-hidden relative aspect-video shadow-2xl ring-4 ring-gray-100">
-                    <Webcam
-                        ref={webcamRef}
-                        audio={false}
-                        screenshotFormat="image/jpeg"
-                        videoConstraints={{ facingMode: "user" }}
-                        className="w-full h-full object-cover opacity-80"
+            {/* Main Tachometer Display */}
+            <div className="relative mt-8 md:mt-0">
+                {/* Outer Ring */}
+                <div className="absolute inset-0 rounded-full border border-[var(--text-secondary)] opacity-20 scale-110"></div>
+
+                <svg height={radius * 2} width={radius * 2} className="rotate-[-90deg] transition-all duration-500">
+                    {/* Track */}
+                    <circle
+                        stroke="rgba(255,255,255,0.1)"
+                        fill="transparent"
+                        strokeWidth={stroke}
+                        r={normalizedRadius}
+                        cx={radius}
+                        cy={radius}
                     />
+                    {/* Indicator */}
+                    <circle
+                        stroke="var(--accent-acid)"
+                        fill="transparent"
+                        strokeWidth={stroke}
+                        strokeDasharray={circumference + ' ' + circumference}
+                        style={{ strokeDashoffset }}
+                        r={normalizedRadius}
+                        cx={radius}
+                        cy={radius}
+                        strokeLinecap="round"
+                        className="transition-all duration-1000 ease-linear"
+                    />
+                </svg>
 
-                    {/* Overlay Content */}
-                    <div className="absolute inset-0 flex flex-col items-center justify-center p-6">
-                        {!isActive && (
-                            <button
-                                onClick={() => setIsActive(true)}
-                                className="bg-white text-indigo-600 hover:scale-110 transition-transform rounded-full p-8 shadow-2xl flex flex-col items-center gap-2 group"
-                            >
-                                <Play className="w-12 h-12 fill-current" />
-                                <span className="font-bold text-sm tracking-wider uppercase">Start</span>
-                            </button>
-                        )}
-
-                        {/* Warnings */}
-                        {isActive && !isFaceDetected && (
-                            <div className="bg-red-500 text-white px-6 py-4 rounded-2xl flex items-center gap-3 animate-bounce shadow-lg">
-                                <Scan className="w-6 h-6" />
-                                <span className="font-bold">Face Not Detected! Paused.</span>
-                            </div>
-                        )}
-                        {isActive && !isTabActive && !permissionRequested && (
-                            <div className="bg-yellow-500 text-white px-6 py-4 rounded-2xl flex items-center gap-3 shadow-lg">
-                                <EyeOff className="w-6 h-6" />
-                                <span className="font-bold">Come back to this tab!</span>
-                            </div>
-                        )}
+                {/* Center Digital Display */}
+                <div className="absolute inset-0 flex flex-col items-center justify-center">
+                    <div className="text-6xl font-black font-mono tracking-tighter text-white tabular-nums drop-shadow-[0_0_15px_rgba(204,255,0,0.3)]">
+                        {Math.floor(timeLeft / 60).toString().padStart(2, '0')}:{Math.floor(timeLeft % 60).toString().padStart(2, '0')}
                     </div>
-
-                    {/* Status Badge */}
-                    {isActive && (
-                        <div className="absolute top-6 right-6 bg-black/50 backdrop-blur text-white px-4 py-2 rounded-full flex items-center gap-2 text-xs font-bold">
-                            <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
-                            LIVE MONITORING
-                        </div>
-                    )}
+                    <div className="text-[10px] tracking-[0.4em] text-[var(--text-secondary)] mt-2 uppercase">
+                        {isCommuteMode ? 'SPORT+' : 'NORMAL'}
+                    </div>
                 </div>
-
             </div>
 
-            {/* RIGHT: Sidebar */}
-            <div className="lg:col-span-4 space-y-6">
-
-                {/* Points Card */}
-                <div className="bg-white rounded-[30px] p-8 shadow-sm border border-gray-100 text-center relative overflow-hidden">
-                    <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-indigo-500 to-purple-500"></div>
-                    <h3 className="text-gray-400 font-bold uppercase tracking-wider text-xs mb-4">Total Points</h3>
-                    <div className="text-6xl font-black text-gray-900 mb-2">{points}</div>
-                    <div className="inline-flex items-center gap-1 bg-green-50 text-green-700 px-3 py-1 rounded-full text-xs font-bold">
-                        <CheckCircle2 className="w-3 h-3" /> {isCommuteMode ? '⚡ Commute Boost (1.5x)' : 'Earning Active'}
+            {/* Stats Row */}
+            <div className="flex gap-12 mt-12 text-center">
+                <div>
+                    <div className="text-[10px] text-[var(--text-secondary)] uppercase tracking-widest mb-1">Session XP</div>
+                    <div className="text-2xl font-mono text-white">{points}</div>
+                </div>
+                <div>
+                    <div className="text-[10px] text-[var(--text-secondary)] uppercase tracking-widest mb-1">Status</div>
+                    <div className={`text-2xl font-mono ${isFaceDetected ? 'text-[var(--accent-acid)]' : 'text-[var(--accent-alert)]'}`}>
+                        {isFaceDetected ? 'LOCKED' : 'LOST'}
                     </div>
                 </div>
+            </div>
 
-                {/* Ad Card */}
-                <div
-                    className="rounded-[30px] p-8 text-center transition-colors duration-500"
-                    style={{ backgroundColor: currentSponsor.color }}
-                >
-                    <span className="bg-white/50 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest text-gray-600 mb-4 inline-block">Sponsor</span>
-                    <h3 className="font-black text-2xl mb-2" style={{ color: currentSponsor.textCol }}>{currentSponsor.name}</h3>
-                    <p className="text-sm font-medium opacity-80" style={{ color: currentSponsor.textCol }}>{currentSponsor.text}</p>
-                </div>
+            {/* Hidden Webcam (Always running for detection, visible only if debugging needed) */}
+            <div className="absolute bottom-4 right-4 w-32 opacity-20 hover:opacity-100 transition-opacity border border-[var(--accent-acid)] rounded-sm overflow-hidden">
+                <Webcam
+                    ref={webcamRef}
+                    audio={false}
+                    videoConstraints={{ facingMode: "user" }}
+                    className="w-full filter grayscale"
+                />
+            </div>
 
-                {/* Controls */}
-                <div className="bg-white rounded-[30px] p-6 shadow-sm border border-gray-100 space-y-3">
-                    {isActive && (
-                        <button
-                            onClick={() => setIsActive(false)}
-                            className="w-full py-4 rounded-2xl bg-red-50 text-red-600 font-bold hover:bg-red-100 transition-colors flex items-center justify-center gap-2"
-                        >
-                            <Pause className="w-5 h-5 fill-current" /> Pause Session
-                        </button>
-                    )}
-
+            {/* Controls */}
+            <div className="mt-12 flex gap-4 w-full max-w-sm z-10">
+                {!isActive ? (
                     <button
-                        onClick={() => {
-                            setPermissionRequested(true);
-                            setTimeout(() => setPermissionRequested(false), 120000);
-                        }}
-                        disabled={!isActive || permissionRequested}
-                        className="w-full py-4 rounded-2xl border-2 border-gray-100 text-gray-500 font-bold hover:border-indigo-100 hover:text-indigo-600 transition-colors disabled:opacity-50 text-sm"
+                        onClick={() => setIsActive(true)}
+                        className="btn-porsche btn-primary w-full shadow-[0_0_30px_rgba(204,255,0,0.2)]"
                     >
-                        {permissionRequested ? 'Research Mode: 01:59 remaining' : 'Need 2 min for Research?'}
+                        <Play size={18} /> INITIATE FOCUS
                     </button>
-                </div>
-
+                ) : (
+                    <button
+                        onClick={() => setIsActive(false)}
+                        className="btn-porsche btn-secondary w-full hover:bg-[var(--accent-alert)] hover:border-[var(--accent-alert)]"
+                    >
+                        <Pause size={18} /> ABORT
+                    </button>
+                )}
             </div>
+
+            {/* Warning Overlays */}
+            {isActive && (!isFaceDetected || !isTabActive) && (
+                <div className="absolute inset-0 bg-black/80 backdrop-blur-sm z-50 flex flex-col items-center justify-center text-center p-6 rounded-sm border border-[var(--accent-alert)]">
+                    <Scan size={48} className="text-[var(--accent-alert)] animate-pulse mb-4" />
+                    <h2 className="text-2xl font-bold text-white mb-2 tracking-widest uppercase">Telemetry Lost</h2>
+                    <p className="text-[var(--text-secondary)] font-mono text-xs">
+                        {!isFaceDetected ? 'OPTICAL SENSORS CANNOT DETECT PILOT' : 'PILOT FOCUS DIVERTED (TAB SWITCH)'}
+                    </p>
+                    <p className="mt-8 text-[var(--accent-alert)] animate-pulse font-bold tracking-widest text-sm">RESUME ATTENTION IMMEDIATELY</p>
+                </div>
+            )}
+
         </div>
     );
 }

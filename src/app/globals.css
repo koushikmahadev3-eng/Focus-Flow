@@ -3,117 +3,130 @@
 @tailwind utilities;
 
 :root {
-  /* Canvas */
-  --bg-page: #f0fdf4;
-  /* Very pale mint/white */
-  --bg-card: #ffffff;
+  /* Porsche Taycan Palette */
+  --bg-cockpit: #0F1012;
+  /* Deep Matte Charcoal */
+  --surface-metallic: #1A1D21;
+  /* Card Background */
+  --surface-highlight: #25282E;
+  /* Card Hover/Active */
 
-  /* Brand - Playful & Bright */
-  --primary: #4f46e5;
-  /* Indigo */
-  --primary-light: #818cf8;
-  --accent-pink: #f43f5e;
-  /* Rose */
-  --accent-yellow: #fbbf24;
-  /* Amber */
-  --accent-teal: #14b8a6;
-  /* Teal */
+  --text-primary: #FFFFFF;
+  /* Crisp White */
+  --text-secondary: #9CA3AF;
+  /* Cool Grey (Instrument Text) */
+  --text-muted: #4B5563;
+  /* Dark Grey */
 
-  /* Text */
-  --text-main: #1f2937;
-  --text-muted: #6b7280;
+  --accent-acid: #CCFF00;
+  /* Acid Green (Taycan Signature) */
+  --accent-alert: #D90429;
+  /* Racing Red */
 
-  /* Shadows - Soft & colored */
-  --shadow-card: 0 10px 30px -5px rgba(0, 0, 0, 0.05);
-  --shadow-hover: 0 20px 40px -5px rgba(79, 70, 229, 0.15);
+  --glass-border: rgba(255, 255, 255, 0.08);
+  --glass-shine: rgba(255, 255, 255, 0.03);
 }
 
-body {
-  background-color: var(--bg-page);
-  color: var(--text-main);
-  font-family: 'Outfit', sans-serif;
-  background-image:
-    radial-gradient(circle at 10% 10%, rgba(20, 184, 166, 0.1) 0%, transparent 20%),
-    radial-gradient(circle at 90% 90%, rgba(244, 63, 94, 0.1) 0%, transparent 20%);
+@layer base {
+  body {
+    @apply bg-[var(--bg-cockpit)] text-[var(--text-primary)] antialiased overflow-x-hidden;
+    font-feature-settings: "ss01", "ss02", "cv01", "cv02";
+    /* Technical look */
+  }
 }
 
-/* 
-   ---------------------------
-   PLAYFUL UTILITIES 
-   ---------------------------
-*/
+@layer components {
 
-/* Card Style - Clean White Pop */
-.glass-panel {
-  background: var(--bg-card);
-  border: 1px solid rgba(0, 0, 0, 0.05);
-  border-radius: 24px;
-  box-shadow: var(--shadow-card);
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  /* Cockpit Card: Matte, slight metallic sheen, subtle border */
+  .card-cockpit {
+    @apply bg-[var(--surface-metallic)] border border-[var(--glass-border)] rounded-sm relative overflow-hidden backdrop-blur-md transition-all duration-300;
+    box-shadow:
+      0 4px 24px -1px rgba(0, 0, 0, 0.5),
+      /* Deep shadow */
+      inset 0 1px 0 0 var(--glass-shine);
+    /* Top lip highlight */
+  }
+
+  .card-cockpit:hover {
+    @apply border-white/20 bg-[var(--surface-highlight)];
+    box-shadow:
+      0 8px 32px -2px rgba(0, 0, 0, 0.6),
+      inset 0 1px 0 0 rgba(255, 255, 255, 0.1);
+  }
+
+  /* Typography: Technical Headers */
+  .text-label {
+    @apply text-[var(--text-secondary)] text-xs font-bold tracking-[0.15em] uppercase;
+  }
+
+  .text-value {
+    @apply font-mono font-medium tracking-tight;
+  }
+
+  /* Buttons: Tactile, Physical feel */
+  .btn-porsche {
+    @apply relative overflow-hidden px-6 py-3 rounded-sm font-bold text-sm tracking-wider uppercase transition-all duration-200 flex items-center justify-center gap-2;
+  }
+
+  .btn-primary {
+    @apply bg-[var(--accent-acid)] text-black hover:bg-white hover:text-black border border-transparent;
+    box-shadow: 0 0 15px rgba(204, 255, 0, 0.3);
+  }
+
+  .btn-secondary {
+    @apply bg-transparent border border-[var(--text-secondary)] text-[var(--text-primary)] hover:border-white hover:bg-white/5;
+  }
+
+  /* Toggles & Switches */
+  .toggle-switch {
+    @apply w-12 h-6 bg-black rounded-full p-1 transition-colors border border-gray-800 relative cursor-pointer;
+  }
+
+  .toggle-switch.active {
+    @apply bg-[var(--surface-highlight)] border-[var(--accent-acid)];
+  }
+
+  .toggle-thumb {
+    @apply w-4 h-4 rounded-full bg-gray-500 shadow-sm transition-transform duration-300;
+  }
+
+  .toggle-switch.active .toggle-thumb {
+    @apply translate-x-6 bg-[var(--accent-acid)];
+    box-shadow: 0 0 10px var(--accent-acid);
+  }
 }
 
-.glass-panel:hover {
-  transform: translateY(-4px);
-  box-shadow: var(--shadow-hover);
-  border-color: rgba(79, 70, 229, 0.2);
+/* Scrollbar - minimal */
+::-webkit-scrollbar {
+  width: 6px;
 }
 
-/* Gradient Text - Bright */
-.text-gradient {
-  background: linear-gradient(135deg, var(--primary) 0%, #a855f7 100%);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
+::-webkit-scrollbar-track {
+  background: var(--bg-cockpit);
 }
 
-/* Bouncy Buttons */
-.btn-primary {
-  background: linear-gradient(135deg, var(--primary) 0%, #4338ca 100%);
-  color: white;
-  border-radius: 99px;
-  font-weight: 700;
-  transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
-  /* Bouncy spring */
-  box-shadow: 0 4px 6px -1px rgba(79, 70, 229, 0.3);
+::-webkit-scrollbar-thumb {
+  background: #333;
+  border-radius: 3px;
 }
 
-.btn-primary:hover {
-  transform: scale(1.05);
-  box-shadow: 0 10px 15px -3px rgba(79, 70, 229, 0.4);
-}
-
-.btn-primary:active {
-  transform: scale(0.95);
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-secondary);
 }
 
 /* Animations */
-@keyframes float {
+@keyframes rev-up {
   0% {
-    transform: translateY(0px);
-  }
-
-  50% {
-    transform: translateY(-10px);
+    width: 0%;
+    opacity: 0;
   }
 
   100% {
-    transform: translateY(0px);
-  }
-}
-
-.animate-float {
-  animation: float 5s ease-in-out infinite;
-}
-
-.animate-pop-in {
-  animation: popIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
-  opacity: 0;
-  transform: scale(0.9);
-}
-
-@keyframes popIn {
-  to {
+    width: 100%;
     opacity: 1;
-    transform: scale(1);
   }
+}
+
+.animate-rev {
+  animation: rev-up 0.8s cubic-bezier(0.22, 1, 0.36, 1) forwards;
 }
