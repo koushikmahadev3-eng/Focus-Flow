@@ -4,7 +4,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import Webcam from 'react-webcam';
 import * as tf from '@tensorflow/tfjs';
 import * as blazeface from '@tensorflow-models/blazeface';
-import { Play, Pause, Scan, EyeOff, checkCircle2, Maximize2 } from 'lucide-react';
+import { Play, Pause, Scan, EyeOff, CheckCircle2, Maximize2 } from 'lucide-react';
 
 const SPONSORS = [
     { name: 'Physics Wala', text: 'Master Mode Active', color: '#1A1D21', textCol: '#CCFF00' },
