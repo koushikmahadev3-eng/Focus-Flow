@@ -15,7 +15,7 @@ export async function GET() {
     ];
 
     try {
-        const quotes = await yahooFinance.quote(symbols);
+        const quotes = await yahooFinance.quote(symbols) as any[];
 
         const formattedData = quotes.map(quote => ({
             symbol: quote.symbol.replace('.NS', ''), // Clean name for UI
