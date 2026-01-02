@@ -28,6 +28,123 @@ export default function StudySession({ initialDuration = 25, isCommuteMode = fal
     const timerRef = useRef<NodeJS.Timeout>(null);
     const [modelError, setModelError] = useState(false);
 
+    // --- Audio Engine ---
+    const [currentSound, setCurrentSound] = useState<string | null>(null);
+    const audioRef = useRef<HTMLAudioElement | null>(null);
+    const oscillatorRef = useRef<any>(null); // For Synth
+    const gainNodeRef = useRef<any>(null);
+    const audioCtxRef = useRef<any>(null);
+
+    const SOUNDS = [
+        { id: 'rain', name: 'Rain', type: 'file', src: '/sounds/rain.ogg' },
+        { id: 'forest', name: 'Forest', type: 'file', src: '/sounds/forest.ogg' },
+        { id: 'cafe', name: 'Cafe', type: 'file', src: '/sounds/cafe.ogg' },
+        { id: 'fire', name: 'Fire', type: 'file', src: '/sounds/fire.ogg' },
+        { id: 'night', name: 'Night', type: 'file', src: '/sounds/night.ogg' },
+        { id: 'white', name: 'White Noise', type: 'synth', color: 'white' },
+        { id: 'pink', name: 'Pink Noise', type: 'synth', color: 'pink' },
+        { id: 'brown', name: 'Brown Noise', type: 'synth', color: 'brown' },
+        { id: 'alpha', name: 'Alpha Wave', type: 'binaural', freq: 10 },
+        { id: 'theta', name: 'Theta Wave', type: 'binaural', freq: 6 },
+    ];
+
+    const stopAudio = () => {
+        // Stop File
+        if (audioRef.current) {
+            audioRef.current.pause();
+            audioRef.current.currentTime = 0;
+        }
+        // Stop Synth
+        if (oscillatorRef.current) {
+            try { oscillatorRef.current.stop(); } catch (e) { }
+            try { oscillatorRef.current.disconnect(); } catch (e) { }
+            oscillatorRef.current = null;
+        }
+    };
+
+    const playSynth = (type: string, param: any) => {
+        if (!audioCtxRef.current) {
+            audioCtxRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
+        }
+        const ctx = audioCtxRef.current;
+        const gainNode = ctx.createGain();
+        gainNode.gain.value = 0.05; // Low volume for synth
+        gainNode.connect(ctx.destination);
+        gainNodeRef.current = gainNode;
+
+        if (type === 'synth') {
+            const bufferSize = ctx.sampleRate * 2; // 2 seconds buffer
+            const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+            const data = buffer.getChannelData(0);
+
+            for (let i = 0; i < bufferSize; i++) {
+                if (param === 'white') {
+                    data[i] = Math.random() * 2 - 1;
+                } else if (param === 'pink') {
+                    // Simple Pink approximation
+                    const white = Math.random() * 2 - 1;
+                    data[i] = (lastOut + (0.02 * white)) / 1.02;
+                    lastOut = data[i];
+                    data[i] *= 3.5;
+                } else {
+                    // Brown - simplified as pink-ish for relaxation
+                    const white = Math.random() * 2 - 1;
+                    data[i] = (lastOut + (0.02 * white)) / 1.02;
+                    lastOut = data[i];
+                    data[i] *= 3.5;
+                }
+            }
+            let lastOut = 0; // Reset for Closure
+
+            const noise = ctx.createBufferSource();
+            noise.buffer = buffer;
+            noise.loop = true;
+            noise.connect(gainNode);
+            noise.start();
+            oscillatorRef.current = noise;
+
+        } else if (type === 'binaural') {
+            // Binaural requiring stereo split (Complex), using nice simple Sine for focus
+            const osc = ctx.createOscillator();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(432, ctx.currentTime); // Base 432Hz
+
+            // Create a beat by modulating volume (Amplitude Modulation) roughly simulates the pulsing effect
+            const lfo = ctx.createOscillator();
+            lfo.type = 'sine';
+            lfo.frequency.setValueAtTime(param, ctx.currentTime);
+
+            const lfoGain = ctx.createGain();
+            lfoGain.gain.value = 0.5;
+            lfo.connect(lfoGain.gain);
+
+            osc.connect(gainNode);
+            osc.start();
+            lfo.start();
+            oscillatorRef.current = osc;
+        }
+    };
+
+    const toggleSound = (soundId: string) => {
+        stopAudio();
+        if (currentSound === soundId) {
+            setCurrentSound(null);
+        } else {
+            setCurrentSound(soundId);
+            const sound = SOUNDS.find(s => s.id === soundId);
+            if (sound) {
+                if (sound.type === 'file') {
+                    if (audioRef.current) {
+                        audioRef.current.src = sound.src || '';
+                        audioRef.current.play().catch(e => console.error("Play error", e));
+                    }
+                } else {
+                    playSynth(sound.type, sound.color || sound.freq);
+                }
+            }
+        }
+    };
+
     // Persistence
     useEffect(() => {
         const savedPoints = localStorage.getItem('userParams_points');
@@ -86,6 +203,8 @@ export default function StudySession({ initialDuration = 25, isCommuteMode = fal
 
     // Timer Logic
     useEffect(() => {
+        if (audioRef.current) audioRef.current.volume = 0.5; // Default volume
+
         if (isActive && isFaceDetected && isTabActive) {
             timerRef.current = setInterval(() => {
                 setTimeLeft((prev) => (prev <= 1 ? 0 : prev - 1));
@@ -113,14 +232,29 @@ export default function StudySession({ initialDuration = 25, isCommuteMode = fal
 
     return (
         <div className="w-full h-full flex flex-col items-center justify-center relative">
+            <audio ref={audioRef} loop />
 
-            {/* Status Header */}
+            {/* Status Header & Audio Controls */}
             <div className="absolute top-0 w-full flex justify-between items-center px-4 py-2 border-b border-white/5">
                 <div className="text-[10px] uppercase tracking-widest text-[var(--accent-acid)] animate-pulse">
                     {isActive ? '● SYSTEM ENGAGED' : '○ STANDBY'}
                 </div>
+
+                {/* Scrollable Sound Bar */}
+                <div className="flex gap-2 overflow-x-auto max-w-[60%] no-scrollbar px-2">
+                    {SOUNDS.map(sound => (
+                        <button
+                            key={sound.id}
+                            onClick={() => toggleSound(sound.id)}
+                            className={`whitespace-nowrap text-[9px] uppercase tracking-wider px-2 py-1 rounded-sm border transition-all ${currentSound === sound.id ? 'bg-[var(--accent-acid)] text-black border-[var(--accent-acid)]' : 'border-[var(--text-secondary)] text-[var(--text-secondary)] hover:border-white hover:text-white'}`}
+                        >
+                            {sound.name}
+                        </button>
+                    ))}
+                </div>
+
                 <div className="text-[10px] font-mono text-[var(--text-secondary)]">
-                    AI_MONITORING: {modelLoaded ? 'ACTIVE' : 'INITIALIZING'}
+                    AI: {modelLoaded ? 'OK' : '...'}
                 </div>
             </div>
 
