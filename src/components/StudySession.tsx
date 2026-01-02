@@ -77,6 +77,8 @@ export default function StudySession({ initialDuration = 25, isCommuteMode = fal
             const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
             const data = buffer.getChannelData(0);
 
+            let lastOut = 0; // MOVED HERE: Declare before usage in loop
+
             for (let i = 0; i < bufferSize; i++) {
                 if (param === 'white') {
                     data[i] = Math.random() * 2 - 1;
@@ -94,7 +96,6 @@ export default function StudySession({ initialDuration = 25, isCommuteMode = fal
                     data[i] *= 3.5;
                 }
             }
-            let lastOut = 0; // Reset for Closure
 
             const noise = ctx.createBufferSource();
             noise.buffer = buffer;
