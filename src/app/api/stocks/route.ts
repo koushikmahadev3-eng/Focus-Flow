@@ -1,7 +1,12 @@
 import { NextResponse } from 'next/server';
-import yahooFinance from 'yahoo-finance2';
+import YahooFinance from 'yahoo-finance2';
 
-export const runtime = 'nodejs'; // fetching requires nodejs runtime, not edge for this lib usually
+export const runtime = 'nodejs';
+
+// Initialize the client (Required for Version 3.x+)
+const yahooFinance = new YahooFinance({
+    suppressNotices: ['yahooSurvey']
+});
 
 export async function GET() {
     // Symbols for Indian Market (NSE)
@@ -20,6 +25,7 @@ export async function GET() {
         const formattedData = quotes.map(quote => {
             const price = quote.regularMarketPrice || quote.postMarketPrice || 0;
             const prevClose = quote.regularMarketPreviousClose || price;
+
             // Calculate change if API returns null/undefined (common with Yahoo free tier)
             let changePercent = quote.regularMarketChangePercent;
 
@@ -43,7 +49,6 @@ export async function GET() {
         return NextResponse.json(formattedData);
     } catch (error) {
         console.error("Stock Fetch Error:", error);
-        // Fallback for when API fails (e.g. rate limits) to avoid breaking UI
         return NextResponse.json({ error: "Failed to fetch stock data" }, { status: 500 });
     }
 }
