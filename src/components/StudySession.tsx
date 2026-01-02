@@ -41,11 +41,11 @@ export default function StudySession({ initialDuration = 25, isCommuteMode = fal
         { id: 'cafe', name: 'Cafe', type: 'file', src: '/sounds/cafe.ogg' },
         { id: 'fire', name: 'Fire', type: 'file', src: '/sounds/fire.ogg' },
         { id: 'night', name: 'Night', type: 'file', src: '/sounds/night.ogg' },
-        { id: 'white', name: 'White Noise', type: 'synth', color: 'white' },
-        { id: 'pink', name: 'Pink Noise', type: 'synth', color: 'pink' },
-        { id: 'brown', name: 'Brown Noise', type: 'synth', color: 'brown' },
-        { id: 'alpha', name: 'Alpha Wave', type: 'binaural', freq: 10 },
-        { id: 'theta', name: 'Theta Wave', type: 'binaural', freq: 6 },
+        { id: 'white', name: 'White', type: 'synth', color: 'white' },
+        { id: 'pink', name: 'Pink', type: 'synth', color: 'pink' },
+        { id: 'brown', name: 'Brown', type: 'synth', color: 'brown' },
+        { id: 'alpha', name: 'Alpha', type: 'binaural', freq: 10 },
+        { id: 'theta', name: 'Theta', type: 'binaural', freq: 6 },
     ];
 
     const stopAudio = () => {
@@ -77,7 +77,7 @@ export default function StudySession({ initialDuration = 25, isCommuteMode = fal
             const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
             const data = buffer.getChannelData(0);
 
-            let lastOut = 0; // MOVED HERE: Declare before usage in loop
+            let lastOut = 0; // Declare before loop
 
             for (let i = 0; i < bufferSize; i++) {
                 if (param === 'white') {
@@ -232,35 +232,42 @@ export default function StudySession({ initialDuration = 25, isCommuteMode = fal
     const modelLoaded = !!model;
 
     return (
-        <div className="w-full h-full flex flex-col items-center justify-center relative">
+        <div className="w-full h-full flex flex-col items-center relative py-6">
             <audio ref={audioRef} loop />
 
-            {/* Status Header & Audio Controls */}
-            <div className="absolute top-0 w-full flex justify-between items-center px-4 py-2 border-b border-white/5">
+            {/* Top Bar: System Status & AI with Separation */}
+            <div className="w-full flex justify-between items-center px-4 mb-6 border-b border-white/5 pb-2">
                 <div className="text-[10px] uppercase tracking-widest text-[var(--accent-acid)] animate-pulse">
                     {isActive ? '● SYSTEM ENGAGED' : '○ STANDBY'}
                 </div>
+                <div className="text-[10px] font-mono text-[var(--text-secondary)]">
+                    AI_MONITORING: {modelLoaded ? 'ACTIVE' : 'INITIALIZING'}
+                </div>
+            </div>
 
-                {/* Scrollable Sound Bar */}
-                <div className="flex gap-2 overflow-x-auto max-w-[60%] no-scrollbar px-2">
+            {/* AUDIO DECK: Dedicated Center Control Strip (No Overlap) */}
+            <div className="w-full max-w-lg mb-8 px-4 flex flex-col items-center">
+                <div className="text-[9px] text-[var(--text-secondary)] uppercase tracking-widest mb-3">Audio Focus Environment</div>
+                <div className="flex flex-wrap justify-center gap-2">
                     {SOUNDS.map(sound => (
                         <button
                             key={sound.id}
                             onClick={() => toggleSound(sound.id)}
-                            className={`whitespace-nowrap text-[9px] uppercase tracking-wider px-2 py-1 rounded-sm border transition-all ${currentSound === sound.id ? 'bg-[var(--accent-acid)] text-black border-[var(--accent-acid)]' : 'border-[var(--text-secondary)] text-[var(--text-secondary)] hover:border-white hover:text-white'}`}
+                            className={`
+                                text-[10px] uppercase font-bold tracking-wider px-3 py-1.5 rounded-sm border transition-all duration-200
+                                ${currentSound === sound.id
+                                    ? 'bg-[var(--accent-acid)] text-black border-[var(--accent-acid)] shadow-[0_0_10px_rgba(204,255,0,0.4)] scale-105'
+                                    : 'bg-black/40 border-[var(--text-secondary)] text-[var(--text-secondary)] hover:border-white hover:text-white hover:bg-white/10'}
+                            `}
                         >
                             {sound.name}
                         </button>
                     ))}
                 </div>
-
-                <div className="text-[10px] font-mono text-[var(--text-secondary)]">
-                    AI: {modelLoaded ? 'OK' : '...'}
-                </div>
             </div>
 
             {/* Main Tachometer Display */}
-            <div className="relative mt-8 md:mt-0">
+            <div className="relative flex-1 flex items-center justify-center min-h-[300px] mb-8">
                 {/* Outer Ring */}
                 <div className="absolute inset-0 rounded-full border border-[var(--text-secondary)] opacity-20 scale-110"></div>
 
@@ -301,7 +308,7 @@ export default function StudySession({ initialDuration = 25, isCommuteMode = fal
             </div>
 
             {/* Stats Row */}
-            <div className="flex gap-12 mt-12 text-center">
+            <div className="flex gap-12 mb-8 text-center">
                 <div>
                     <div className="text-[10px] text-[var(--text-secondary)] uppercase tracking-widest mb-1">Session XP</div>
                     <div className="text-2xl font-mono text-white">{points}</div>
@@ -315,7 +322,7 @@ export default function StudySession({ initialDuration = 25, isCommuteMode = fal
             </div>
 
             {/* Hidden Webcam (Always running for detection, visible only if debugging needed) */}
-            <div className="absolute bottom-4 right-4 w-32 opacity-20 hover:opacity-100 transition-opacity border border-[var(--accent-acid)] rounded-sm overflow-hidden">
+            <div className="absolute bottom-4 right-4 w-32 opacity-20 hover:opacity-100 transition-opacity border border-[var(--accent-acid)] rounded-sm overflow-hidden hidden">
                 <Webcam
                     ref={webcamRef}
                     audio={false}
@@ -325,7 +332,7 @@ export default function StudySession({ initialDuration = 25, isCommuteMode = fal
             </div>
 
             {/* Controls */}
-            <div className="mt-12 flex gap-4 w-full max-w-sm z-10">
+            <div className="mt-auto flex gap-4 w-full max-w-sm z-10 pb-4">
                 {!isActive ? (
                     <button
                         onClick={() => setIsActive(true)}
