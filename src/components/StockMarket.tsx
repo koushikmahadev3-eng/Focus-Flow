@@ -116,8 +116,14 @@ export default function StockMarket() {
                     </div>
                 ))}
             </div>
-            <div className="text-[9px] text-center text-white/20 mt-2 uppercase tracking-widest">
-                ● CONNECTED TO NSE MARKET
+            <div className="flex justify-between items-center mt-2 px-1">
+                <div className="text-[9px] text-white/30 uppercase tracking-widest flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-yellow-500/50"></span>
+                    Data Delayed 15m
+                </div>
+                <div className="text-[9px] text-white/30 font-mono">
+                    Updated: {new Date().toLocaleTimeString()}
+                </div>
             </div>
         </div>
     );
