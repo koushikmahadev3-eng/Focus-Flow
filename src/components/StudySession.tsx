@@ -206,13 +206,39 @@ export default function StudySession({ initialDuration = 25, isCommuteMode = fal
         return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
     }, []);
 
+    // Notifications & Alert
+    const triggerAlert = () => {
+        // Audio Cue
+        playSynth('synth', 'white'); // Short burst to grab attention
+        setTimeout(() => playSynth('synth', 'white'), 200);
+
+        // Browser Notification
+        if (Notification.permission === 'granted') {
+            new Notification('MISSION COMPLETE', {
+                body: 'Focus session finished. Good work, Pilot.',
+                icon: '/favicon.ico'
+            });
+        }
+
+        // Title Flash
+        document.title = "⚠️ MISSION COMPLETE ⚠️";
+        setTimeout(() => document.title = "Focus Flow", 5000);
+    };
+
     // Timer Logic
     useEffect(() => {
         if (audioRef.current) audioRef.current.volume = 0.5;
 
         if (isActive && isFaceDetected && isTabActive) {
             timerRef.current = setInterval(() => {
-                setTimeLeft((prev) => (prev <= 1 ? 0 : prev - 1));
+                setTimeLeft((prev) => {
+                    if (prev <= 1) {
+                        triggerAlert();
+                        setIsActive(false);
+                        return 0;
+                    }
+                    return prev - 1;
+                });
 
                 const pointInterval = isCommuteMode ? 20 : 30;
                 if (timeLeft % pointInterval === 0 && timeLeft > 0) {
@@ -224,6 +250,13 @@ export default function StudySession({ initialDuration = 25, isCommuteMode = fal
         }
         return () => { if (timerRef.current) clearInterval(timerRef.current); };
     }, [isActive, isFaceDetected, isTabActive, isCommuteMode, timeLeft]);
+
+    const handleStart = () => {
+        setIsActive(true);
+        if (Notification.permission === 'default') {
+            Notification.requestPermission();
+        }
+    };
 
 
     // Visual Math
@@ -342,7 +375,7 @@ export default function StudySession({ initialDuration = 25, isCommuteMode = fal
             <div className="mt-auto flex gap-4 w-full max-w-sm z-10 pb-4">
                 {!isActive ? (
                     <button
-                        onClick={() => setIsActive(true)}
+                        onClick={handleStart}
                         className="btn-porsche btn-primary w-full shadow-[0_0_30px_rgba(204,255,0,0.4)] bg-[var(--accent-acid)] text-black border-0 hover:bg-white hover:text-black hover:shadow-[0_0_40px_rgba(255,255,255,0.5)]"
                     >
                         <Play size={18} /> INITIATE FOCUS
