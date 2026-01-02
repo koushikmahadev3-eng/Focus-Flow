@@ -7,11 +7,18 @@ import Leaderboard from '@/components/Leaderboard';
 import StockMarket from '@/components/StockMarket';
 import { LogIn, Zap, Battery, Wifi, User, LayoutDashboard } from 'lucide-react';
 
+import { useLocalStorage } from '@/hooks/useLocalStorage';
+import { useTimer } from '@/hooks/useTimer';
+
 export default function Home() {
   const [sessionStarted, setSessionStarted] = useState(false);
   const [studyTime, setStudyTime] = useState(25);
   const [isCommuteMode, setIsCommuteMode] = useState(false);
-  const { user, login } = useAuth();
+  const { user, login } = useAuth(); // Keeping auth for backend sync, but local onboarding handles the "Pilot Name"
+
+  // ONBOARDING STATE
+  const [pilotName, setPilotName] = useLocalStorage<string>('pilot_identity', '', 1);
+  const [bootInput, setBootInput] = useState('');
 
   const handleLogin = async () => {
     try {
@@ -21,6 +28,57 @@ export default function Home() {
     }
   };
 
+  // --- BOOT SEQUENCE (ONBOARDING GATE) ---
+  if (!pilotName) {
+    return (
+      <div className="min-h-screen bg-[var(--bg-cockpit)] flex items-center justify-center p-4 relative overflow-hidden">
+        {/* Animated Background Grid */}
+        <div className="absolute inset-0 grid-background opacity-20 pointer-events-none"></div>
+
+        <div className="relative z-10 w-full max-w-md">
+          <div className="card-cockpit p-8 flex flex-col items-center text-center border-t-4 border-t-[var(--accent-acid)] shadow-[0_0_50px_rgba(204,255,0,0.1)]">
+            <div className="w-16 h-16 bg-[var(--accent-acid)] rounded-sm flex items-center justify-center mb-6 animate-pulse">
+              <LayoutDashboard size={32} className="text-black" />
+            </div>
+
+            <h1 className="text-3xl font-black text-white tracking-tighter mb-2">FOCUS FLOW</h1>
+            <div className="text-[10px] text-[var(--text-secondary)] tracking-[0.3em] uppercase mb-8">System Initialization v2.0</div>
+
+            <div className="w-full text-left mb-6">
+              <label className="text-[10px] text-[var(--accent-acid)] uppercase tracking-widest font-bold mb-2 block">Pilot Identity Required</label>
+              <input
+                type="text"
+                value={bootInput}
+                onChange={(e) => setBootInput(e.target.value)}
+                placeholder="ENTER CALLSIGN..."
+                maxLength={15}
+                className="w-full bg-black/40 border border-[var(--glass-border)] text-white text-lg font-mono px-4 py-3 rounded-sm focus:border-[var(--accent-acid)] focus:outline-none transition-colors uppercase placeholder:text-white/20"
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && bootInput.trim()) setPilotName(bootInput.trim());
+                }}
+              />
+            </div>
+
+            <button
+              onClick={() => {
+                if (bootInput.trim()) setPilotName(bootInput.trim());
+              }}
+              disabled={!bootInput.trim()}
+              className="btn-porsche btn-primary w-full disabled:opacity-50 disabled:cursor-not-allowed group"
+            >
+              <Zap size={18} className="group-hover:text-black transition-colors" /> INITIALIZE SYSTEMS
+            </button>
+
+            <p className="mt-8 text-[10px] text-[var(--text-secondary)] max-w-xs mx-auto">
+              By initializing, you accept the protocol for high-performance focus sessions. Protocol 18-B active.
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // --- MAIN DASHBOARD (Rest of the App) ---
   return (
     <main className="min-h-screen p-4 md:p-8 flex flex-col gap-6">
 
@@ -43,23 +101,13 @@ export default function Home() {
             <div className="text-[var(--accent-acid)]">v2.0 TAYCAN</div>
           </div>
 
-          {!user ? (
-            <button onClick={handleLogin} className="btn-porsche btn-primary">
-              <LogIn size={16} /> CONNECT
-            </button>
-          ) : (
-            <div className="flex items-center gap-3 pl-6 border-l border-white/10">
-              <div className="text-right">
-                <div className="text-xs font-bold text-white tracking-wider">{user.displayName || 'PILOT'}</div>
-                <div className="text-[10px] text-[var(--text-secondary)] font-mono">ID: {user.uid.slice(0, 6)}</div>
-              </div>
-              {user.photoURL ? (
-                <img src={user.photoURL} alt="User" className="w-10 h-10 rounded-sm border border-white/20" />
-              ) : (
-                <div className="w-10 h-10 bg-white/10 rounded-sm flex items-center justify-center text-white"><User size={18} /></div>
-              )}
+          <div className="flex items-center gap-3 pl-6 border-l border-white/10">
+            <div className="text-right">
+              <div className="text-xs font-bold text-white tracking-wider">{pilotName}</div>
+              <div className="text-[10px] text-[var(--text-secondary)] font-mono">PILOT</div>
             </div>
-          )}
+            <div className="w-10 h-10 bg-white/10 rounded-sm flex items-center justify-center text-white"><User size={18} /></div>
+          </div>
         </div>
       </header>
 
@@ -70,6 +118,7 @@ export default function Home() {
         <div className="lg:col-span-4 flex flex-col gap-6">
           {/* Stock Market Widget */}
           <div className="card-cockpit p-6 flex-1 min-h-[300px]">
+            {/* ... Stock and Leaderboard logic unchanged ... */}
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-label text-[var(--accent-acid)]">Market Telemetry</h2>
               <div className="w-2 h-2 rounded-full bg-[var(--accent-acid)] animate-pulse shadow-[0_0_8px_var(--accent-acid)]"></div>
@@ -99,54 +148,49 @@ export default function Home() {
 
             {/* Session Component (The Speedometer) */}
             <div className="w-full max-w-2xl">
-              {!user ? (
-                <div className="text-center space-y-4">
-                  <div className="text-6xl font-black text-[var(--surface-highlight)] tracking-tighter select-none">LOCKED</div>
-                  <div className="text-[var(--text-secondary)] tracking-widest uppercase text-sm">Authentication Required for Ignition</div>
+
+              {!sessionStarted ? (
+                /* Setup Phase */
+                <div className="flex flex-col items-center w-full animate-rev">
+                  <div className="w-full max-w-md mb-12 relative group">
+                    <div className="flex justify-between text-label mb-2">
+                      <span>Duration</span>
+                      <span className="text-[var(--accent-acid)] font-mono text-lg">{studyTime} MIN</span>
+                    </div>
+                    <input
+                      type="range" min="5" max="120" step="5" value={studyTime}
+                      onChange={(e) => setStudyTime(Number(e.target.value))}
+                      className="w-full h-1 bg-[var(--surface-highlight)] appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-8 [&::-webkit-slider-thumb]:bg-[var(--accent-acid)] [&::-webkit-slider-thumb]:shadow-[0_0_10px_var(--accent-acid)]"
+                    />
+                    <div className="flex justify-between mt-2 text-[10px] text-[var(--text-secondary)] font-mono">
+                      <span>05</span>
+                      <span>60</span>
+                      <span>120</span>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-6 mb-12 p-4 border border-[var(--glass-border)] rounded-sm bg-white/5 w-full max-w-md justify-between cursor-pointer hover:bg-white/10 transition-colors" onClick={() => setIsCommuteMode(!isCommuteMode)}>
+                    <div>
+                      <div className="text-label text-white mb-1">Commute Mode</div>
+                      <div className="text-[10px] text-[var(--text-secondary)]">Optimized for travel. 1.5x Multiplier.</div>
+                    </div>
+                    <div className={`toggle-switch ${isCommuteMode ? 'active' : ''}`}>
+                      <div className="toggle-thumb" />
+                    </div>
+                  </div>
+
+                  <button
+                    onClick={() => setSessionStarted(true)}
+                    className="btn-porsche btn-primary text-lg w-full max-w-sm h-16"
+                  >
+                    <Zap className="fill-current" /> START ENGINE
+                  </button>
                 </div>
               ) : (
-                !sessionStarted ? (
-                  /* Setup Phase */
-                  <div className="flex flex-col items-center w-full animate-rev">
-                    <div className="w-full max-w-md mb-12 relative group">
-                      <div className="flex justify-between text-label mb-2">
-                        <span>Duration</span>
-                        <span className="text-[var(--accent-acid)] font-mono text-lg">{studyTime} MIN</span>
-                      </div>
-                      <input
-                        type="range" min="5" max="120" step="5" value={studyTime}
-                        onChange={(e) => setStudyTime(Number(e.target.value))}
-                        className="w-full h-1 bg-[var(--surface-highlight)] appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-8 [&::-webkit-slider-thumb]:bg-[var(--accent-acid)] [&::-webkit-slider-thumb]:shadow-[0_0_10px_var(--accent-acid)]"
-                      />
-                      <div className="flex justify-between mt-2 text-[10px] text-[var(--text-secondary)] font-mono">
-                        <span>05</span>
-                        <span>60</span>
-                        <span>120</span>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-6 mb-12 p-4 border border-[var(--glass-border)] rounded-sm bg-white/5 w-full max-w-md justify-between cursor-pointer hover:bg-white/10 transition-colors" onClick={() => setIsCommuteMode(!isCommuteMode)}>
-                      <div>
-                        <div className="text-label text-white mb-1">Commute Mode</div>
-                        <div className="text-[10px] text-[var(--text-secondary)]">Optimized for travel. 1.5x Multiplier.</div>
-                      </div>
-                      <div className={`toggle-switch ${isCommuteMode ? 'active' : ''}`}>
-                        <div className="toggle-thumb" />
-                      </div>
-                    </div>
-
-                    <button
-                      onClick={() => setSessionStarted(true)}
-                      className="btn-porsche btn-primary text-lg w-full max-w-sm h-16"
-                    >
-                      <Zap className="fill-current" /> START ENGINE
-                    </button>
-                  </div>
-                ) : (
-                  /* Active Session */
-                  <StudySession initialDuration={studyTime} isCommuteMode={isCommuteMode} />
-                )
-              )}
+                /* Active Session */
+                <StudySession initialDuration={studyTime} isCommuteMode={isCommuteMode} />
+              )
+             
             </div>
           </div>
         </div>
