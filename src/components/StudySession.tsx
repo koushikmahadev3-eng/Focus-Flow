@@ -7,8 +7,8 @@ import * as blazeface from '@tensorflow-models/blazeface';
 import { Play, Pause, Scan, EyeOff, CheckCircle2, Maximize2 } from 'lucide-react';
 
 const SPONSORS = [
-    { name: 'Physics Wala', text: 'Master Mode Active', color: '#1A1D21', textCol: '#CCFF00' },
-    { name: 'Academic', text: 'Telemetry Online', color: '#1A1D21', textCol: '#CCFF00' }
+    { name: 'Physics Wala', text: 'Master Mode Active', color: '#1A1D21', textCol: '#D90429' },
+    { name: 'Academic', text: 'Telemetry Online', color: '#1A1D21', textCol: '#D90429' }
 ];
 
 interface StudySessionProps {
@@ -77,19 +77,17 @@ export default function StudySession({ initialDuration = 25, isCommuteMode = fal
             const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
             const data = buffer.getChannelData(0);
 
-            let lastOut = 0; // Declare before loop
+            let lastOut = 0;
 
             for (let i = 0; i < bufferSize; i++) {
                 if (param === 'white') {
                     data[i] = Math.random() * 2 - 1;
                 } else if (param === 'pink') {
-                    // Simple Pink approximation
                     const white = Math.random() * 2 - 1;
                     data[i] = (lastOut + (0.02 * white)) / 1.02;
                     lastOut = data[i];
                     data[i] *= 3.5;
                 } else {
-                    // Brown - simplified as pink-ish for relaxation
                     const white = Math.random() * 2 - 1;
                     data[i] = (lastOut + (0.02 * white)) / 1.02;
                     lastOut = data[i];
@@ -105,12 +103,10 @@ export default function StudySession({ initialDuration = 25, isCommuteMode = fal
             oscillatorRef.current = noise;
 
         } else if (type === 'binaural') {
-            // Binaural requiring stereo split (Complex), using nice simple Sine for focus
             const osc = ctx.createOscillator();
             osc.type = 'sine';
-            osc.frequency.setValueAtTime(432, ctx.currentTime); // Base 432Hz
+            osc.frequency.setValueAtTime(432, ctx.currentTime);
 
-            // Create a beat by modulating volume (Amplitude Modulation) roughly simulates the pulsing effect
             const lfo = ctx.createOscillator();
             lfo.type = 'sine';
             lfo.frequency.setValueAtTime(param, ctx.currentTime);
@@ -204,13 +200,12 @@ export default function StudySession({ initialDuration = 25, isCommuteMode = fal
 
     // Timer Logic
     useEffect(() => {
-        if (audioRef.current) audioRef.current.volume = 0.5; // Default volume
+        if (audioRef.current) audioRef.current.volume = 0.5;
 
         if (isActive && isFaceDetected && isTabActive) {
             timerRef.current = setInterval(() => {
                 setTimeLeft((prev) => (prev <= 1 ? 0 : prev - 1));
 
-                // Points logic
                 const pointInterval = isCommuteMode ? 20 : 30;
                 if (timeLeft % pointInterval === 0 && timeLeft > 0) {
                     setPoints(p => p + 1);
@@ -256,7 +251,7 @@ export default function StudySession({ initialDuration = 25, isCommuteMode = fal
                             className={`
                                 text-[10px] uppercase font-bold tracking-wider px-3 py-1.5 rounded-sm border transition-all duration-200
                                 ${currentSound === sound.id
-                                    ? 'bg-[var(--accent-acid)] text-black border-[var(--accent-acid)] shadow-[0_0_10px_rgba(204,255,0,0.4)] scale-105'
+                                    ? 'bg-[var(--accent-acid)] text-white border-[var(--accent-acid)] shadow-[0_0_15px_rgba(227,0,15,0.4)] scale-105'
                                     : 'bg-black/40 border-[var(--text-secondary)] text-[var(--text-secondary)] hover:border-white hover:text-white hover:bg-white/10'}
                             `}
                         >
@@ -298,11 +293,11 @@ export default function StudySession({ initialDuration = 25, isCommuteMode = fal
 
                 {/* Center Digital Display */}
                 <div className="absolute inset-0 flex flex-col items-center justify-center">
-                    <div className="text-6xl font-black font-mono tracking-tighter text-white tabular-nums drop-shadow-[0_0_15px_rgba(204,255,0,0.3)]">
+                    <div className="text-6xl font-black font-mono tracking-tighter text-white tabular-nums drop-shadow-[0_0_20px_rgba(227,0,15,0.6)]">
                         {Math.floor(timeLeft / 60).toString().padStart(2, '0')}:{Math.floor(timeLeft % 60).toString().padStart(2, '0')}
                     </div>
-                    <div className="text-[10px] tracking-[0.4em] text-[var(--text-secondary)] mt-2 uppercase">
-                        {isCommuteMode ? 'SPORT+' : 'NORMAL'}
+                    <div className="text-[10px] tracking-[0.4em] text-[var(--accent-acid)] mt-2 uppercase font-bold">
+                        {isCommuteMode ? 'SPORT+' : 'REDLINE'}
                     </div>
                 </div>
             </div>
@@ -321,13 +316,17 @@ export default function StudySession({ initialDuration = 25, isCommuteMode = fal
                 </div>
             </div>
 
-            {/* Hidden Webcam (Always running for detection, visible only if debugging needed) */}
-            <div className="absolute bottom-4 right-4 w-32 opacity-20 hover:opacity-100 transition-opacity border border-[var(--accent-acid)] rounded-sm overflow-hidden hidden">
+            {/* Active Webcam (PiP Mode) - RESTORED & VISIBLE */}
+            <div className={`absolute bottom-6 right-6 w-48 h-36 transition-all duration-500 border border-[var(--accent-acid)] rounded-sm overflow-hidden bg-black shadow-[0_0_20px_rgba(227,0,15,0.2)] hover:scale-105 hover:shadow-[0_0_30px_rgba(227,0,15,0.4)] ${isActive ? 'opacity-100 translate-y-0' : 'opacity-50 translate-y-4 grayscale'}`}>
+                <div className="absolute top-2 left-2 flex gap-1 z-10">
+                    <div className="w-1.5 h-1.5 rounded-full bg-[var(--accent-acid)] animate-pulse"></div>
+                    <span className="text-[8px] font-mono text-white/80 tracking-widest">REC</span>
+                </div>
                 <Webcam
                     ref={webcamRef}
                     audio={false}
                     videoConstraints={{ facingMode: "user" }}
-                    className="w-full filter grayscale"
+                    className="w-full h-full object-cover"
                 />
             </div>
 
@@ -336,16 +335,16 @@ export default function StudySession({ initialDuration = 25, isCommuteMode = fal
                 {!isActive ? (
                     <button
                         onClick={() => setIsActive(true)}
-                        className="btn-porsche btn-primary w-full shadow-[0_0_30px_rgba(204,255,0,0.2)]"
+                        className="btn-porsche btn-primary w-full shadow-[0_0_30px_rgba(227,0,15,0.4)] bg-[var(--accent-acid)] text-white border-0 hover:bg-white hover:text-black hover:shadow-[0_0_40px_rgba(255,255,255,0.5)]"
                     >
-                        <Play size={18} /> INITIATE FOCUS
+                        <Play size={18} /> INITIATE SPORT MODE
                     </button>
                 ) : (
                     <button
                         onClick={() => setIsActive(false)}
                         className="btn-porsche btn-secondary w-full hover:bg-[var(--accent-alert)] hover:border-[var(--accent-alert)]"
                     >
-                        <Pause size={18} /> ABORT
+                        <Pause size={18} /> PIGMENT STOP
                     </button>
                 )}
             </div>
