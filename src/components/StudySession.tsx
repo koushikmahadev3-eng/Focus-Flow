@@ -29,6 +29,7 @@ export default function StudySession({ initialDuration = 25, isCommuteMode = fal
     // timeLeft moved to useTimer hook
     const [points, setPoints] = useLocalStorage<number>('user_xp_points', 0, 1);
     const [tasks, setTasks] = useLocalStorage<Task[]>('user_tasks', [], 1);
+    const [totalMinutes, setTotalMinutes] = useLocalStorage<number>('pilot_stats_minutes', 0, 1);
 
     // Volatile state (doesn't need persistence across reloads usually, or handled differently)
     const [isActive, setIsActive] = useState(false);
@@ -228,12 +229,17 @@ export default function StudySession({ initialDuration = 25, isCommuteMode = fal
 
     // --- Timer Hook Integration ---
     const handleTick = useCallback((time: number) => {
-        // Point Calculation Logic (moved from old useEffect)
+        // Point Calculation Logic
         const pointInterval = isCommuteMode ? 20 : 30;
         if (time % pointInterval === 0 && time > 0) {
             setPoints(p => p + 1);
         }
-    }, [isCommuteMode, setPoints]);
+
+        // Track Total Focus Time (every minute)
+        if (time % 60 === 0 && time > 0) {
+            setTotalMinutes(m => m + 1);
+        }
+    }, [isCommuteMode, setPoints, setTotalMinutes]);
 
     const handleFinish = useCallback(() => {
         triggerAlert();

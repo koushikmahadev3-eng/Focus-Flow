@@ -5,6 +5,7 @@ import { useAuth } from '@/context/AuthContext';
 import StudySession from '@/components/StudySession';
 import Leaderboard from '@/components/Leaderboard';
 import StockMarket from '@/components/StockMarket';
+import PilotLog from '@/components/PilotLog';
 import { LogIn, Zap, Battery, Wifi, User, LayoutDashboard } from 'lucide-react';
 
 import { useLocalStorage } from '@/hooks/useLocalStorage';
@@ -114,8 +115,14 @@ export default function Home() {
       {/* 2. MAIN COCKPIT GRID */}
       <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-6">
 
-        {/* LEFT PANEL: Telemetry (Stocks & Leaderboard) */}
+        {/* LEFT PANEL: Telemetry (Stocks, Leaderboard, Pilot Log) */}
         <div className="lg:col-span-4 flex flex-col gap-6">
+
+          {/* Pilot Log (Personal Stats) */}
+          <div className="card-cockpit p-6 min-h-[200px]">
+            <PilotLog />
+          </div>
+
           {/* Stock Market Widget */}
           <div className="card-cockpit p-6 flex-1 min-h-[300px]">
             {/* ... Stock and Leaderboard logic unchanged ... */}
