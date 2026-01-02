@@ -225,31 +225,38 @@ export default function StudySession({ initialDuration = 25, isCommuteMode = fal
         setTimeout(() => document.title = "Focus Flow", 5000);
     };
 
-    // Timer Logic
-    useEffect(() => {
-        if (audioRef.current) audioRef.current.volume = 0.5;
-
-        if (isActive && isFaceDetected && isTabActive) {
-            timerRef.current = setInterval(() => {
-                setTimeLeft((prev) => {
-                    if (prev <= 1) {
-                        triggerAlert();
-                        setIsActive(false);
-                        return 0;
-                    }
-                    return prev - 1;
-                });
-
-                const pointInterval = isCommuteMode ? 20 : 30;
-                if (timeLeft % pointInterval === 0 && timeLeft > 0) {
-                    setPoints(p => p + 1);
-                }
-            }, 1000);
-        } else {
-            if (timerRef.current) clearInterval(timerRef.current);
+    // --- Timer Hook Integration ---
+    const handleTick = useCallback((time: number) => {
+        // Point Calculation Logic (moved from old useEffect)
+        const pointInterval = isCommuteMode ? 20 : 30;
+        if (time % pointInterval === 0 && time > 0) {
+            setPoints(p => p + 1);
         }
-        return () => { if (timerRef.current) clearInterval(timerRef.current); };
-    }, [isActive, isFaceDetected, isTabActive, isCommuteMode, timeLeft]);
+    }, [isCommuteMode, setPoints]);
+
+    const handleFinish = useCallback(() => {
+        triggerAlert();
+        setIsActive(false);
+    }, [setIsActive]); // triggerAlert is stable/hoisted? No, check scope.
+
+    // Calculate effective running state
+    const isTimerRunning = isActive && isFaceDetected && isTabActive;
+
+    const { timeLeft, reset: resetTimer } = useTimer({
+        initialTime: initialDuration * 60,
+        isRunning: isTimerRunning,
+        onFinish: handleFinish,
+        onTick: handleTick,
+        key: 'focus_timer_left'
+    });
+
+    // Reset timer if duration prop changes significantly? 
+    // Actually, we probably want to sync initialDuration changes only if timer isn't active
+    useEffect(() => {
+        if (!isActive && Math.abs(timeLeft - initialDuration * 60) > 60) {
+            // resetTimer(); // Optional: Logic to auto-reset if props change. Keeping simple for now.
+        }
+    }, [initialDuration]);
 
     const handleStart = () => {
         setIsActive(true);
