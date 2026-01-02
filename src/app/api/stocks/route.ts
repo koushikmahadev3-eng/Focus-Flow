@@ -17,13 +17,28 @@ export async function GET() {
     try {
         const quotes = await yahooFinance.quote(symbols) as any[];
 
-        const formattedData = quotes.map(quote => ({
-            symbol: quote.symbol.replace('.NS', ''), // Clean name for UI
-            name: quote.shortName || quote.longName || quote.symbol,
-            price: quote.regularMarketPrice,
-            change: quote.regularMarketChangePercent,
-            currency: '₹'
-        }));
+        const formattedData = quotes.map(quote => {
+            const price = quote.regularMarketPrice || quote.postMarketPrice || 0;
+            const prevClose = quote.regularMarketPreviousClose || price;
+            // Calculate change if API returns null/undefined (common with Yahoo free tier)
+            let changePercent = quote.regularMarketChangePercent;
+
+            if (changePercent === undefined || changePercent === null) {
+                if (prevClose > 0) {
+                    changePercent = ((price - prevClose) / prevClose) * 100;
+                } else {
+                    changePercent = 0;
+                }
+            }
+
+            return {
+                symbol: quote.symbol.replace('.NS', ''),
+                name: quote.shortName || quote.longName || quote.symbol,
+                price: price,
+                change: parseFloat(changePercent.toFixed(2)),
+                currency: '₹'
+            };
+        });
 
         return NextResponse.json(formattedData);
     } catch (error) {
