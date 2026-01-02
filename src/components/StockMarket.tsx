@@ -1,15 +1,15 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { TrendingUp, TrendingDown, Briefcase } from 'lucide-react';
 
 const INITIAL_STOCKS = [
-    { symbol: 'HDFCBANK', name: 'HDFC Bank', price: 1530.00, change: 1.2 },
-    { symbol: 'RELIANCE', name: 'Reliance Ind.', price: 2450.00, change: -0.5 },
-    { symbol: 'INFY', name: 'Infosys', price: 1420.00, change: 0.8 },
-    { symbol: 'TATASTEEL', name: 'Tata Steel', price: 120.00, change: 2.1 },
-    { symbol: 'ZOMATO', name: 'Zomato', price: 85.50, change: 0.5 },
-    { symbol: 'PAYTM', name: 'Paytm', price: 650.00, change: -1.2 },
+    { symbol: 'HDFCBANK', name: 'HDFC Bank', price: 1530.00, change: 0.0 },
+    { symbol: 'RELIANCE', name: 'Reliance Ind.', price: 2450.00, change: 0.0 },
+    { symbol: 'INFY', name: 'Infosys', price: 1420.00, change: 0.0 },
+    { symbol: 'TATASTEEL', name: 'Tata Steel', price: 120.00, change: 0.0 },
+    { symbol: 'ZOMATO', name: 'Zomato', price: 85.50, change: 0.0 },
+    { symbol: 'PAYTM', name: 'Paytm', price: 650.00, change: 0.0 },
 ];
 
 export default function StockMarket() {
@@ -25,38 +25,30 @@ export default function StockMarket() {
         if (savedPort) setPortfolio(JSON.parse(savedPort));
     }, []);
 
-    // 🔴 LIVE MARKET SIMULATION ENGINE
-    // Simulates price ticks every 3 seconds
+    // 🔴 REAL MARKET DATA FETCH
+    // Fetches from our internal API (which proxies Yahoo Finance)
+    const fetchStockData = async () => {
+        try {
+            const res = await fetch('/api/stocks');
+            if (!res.ok) throw new Error('Network response was not ok');
+            const data = await res.json();
+
+            if (Array.isArray(data)) {
+                setStocks(data);
+            }
+        } catch (error) {
+            console.error("Failed to fetch stocks:", error);
+            // Keep old data if fetch fails
+        }
+    };
+
     useEffect(() => {
-        const interval = setInterval(() => {
-            setStocks(prevStocks => prevStocks.map(stock => {
-                // Random walk logic:
-                // 1. Direction: 50/50 chance of up/down, skewed slightly by existing trend
-                // 2. Volatility: 0.1% to 1.5% fluctuation per tick
-                const volatility = Math.random() * 0.015; // Max 1.5% move
-                const direction = Math.random() > 0.48 ? 1 : -1; // Slight bullish bias
-                const changeAmount = stock.price * volatility * direction;
-
-                let newPrice = stock.price + changeAmount;
-                newPrice = Math.max(1, newPrice); // No negative stock prices
-
-                // Recalculate percent change for the day (vs simulated Open)
-                // For simplicity, we just add the tick % to the existing Change % to show momentum
-                const tickPercent = (changeAmount / stock.price) * 100;
-                const newChange = stock.change + tickPercent;
-
-                return {
-                    ...stock,
-                    price: parseFloat(newPrice.toFixed(2)),
-                    change: parseFloat(newChange.toFixed(2))
-                };
-            }));
-        }, 3000);
-
+        fetchStockData(); // Initial Fetch
+        const interval = setInterval(fetchStockData, 15000); // Poll every 15 seconds (Standard API Limit safe)
         return () => clearInterval(interval);
     }, []);
 
-    const handleBuy = (stock: typeof INITIAL_STOCKS[0]) => {
+    const handleBuy = (stock: any) => {
         if (userPoints >= stock.price) {
             const newPoints = userPoints - stock.price;
             const newPort = { ...portfolio, [stock.symbol]: (portfolio[stock.symbol] || 0) + 1 };
@@ -70,7 +62,7 @@ export default function StockMarket() {
         }
     };
 
-    const handleSell = (stock: typeof INITIAL_STOCKS[0]) => {
+    const handleSell = (stock: any) => {
         if (portfolio[stock.symbol] > 0) {
             const newPoints = userPoints + stock.price;
             const newPort = { ...portfolio, [stock.symbol]: portfolio[stock.symbol] - 1 };
@@ -84,7 +76,7 @@ export default function StockMarket() {
     return (
         <div className="space-y-4">
             <div className="flex items-center justify-between mb-4 px-2">
-                <div className="text-[10px] text-[var(--text-secondary)] uppercase tracking-widest font-bold">Live Market</div>
+                <div className="text-[10px] text-[var(--text-secondary)] uppercase tracking-widest font-bold">Yahoo Finance API</div>
                 <div className="text-[10px] text-[var(--accent-acid)] uppercase tracking-widest font-bold flex items-center gap-2">
                     <Briefcase size={12} />
                     {Object.values(portfolio).reduce((a, b) => a + b, 0)} Units
@@ -125,7 +117,7 @@ export default function StockMarket() {
                 ))}
             </div>
             <div className="text-[9px] text-center text-white/20 mt-2 uppercase tracking-widest">
-                ● LIVE FEED ACTIVE
+                ● CONNECTED TO NSE MARKET
             </div>
         </div>
     );
