@@ -148,8 +148,12 @@ export default function Home() {
 
             {/* Session Component (The Speedometer) */}
             <div className="w-full max-w-2xl">
-
-              {!sessionStarted ? (
+              {!user ? (
+                <div className="text-center space-y-4">
+                  <div className="text-6xl font-black text-[var(--surface-highlight)] tracking-tighter select-none">LOCKED</div>
+                  <div className="text-[var(--text-secondary)] tracking-widest uppercase text-sm">Authentication Required for Ignition</div>
+                </div>
+              ) : !sessionStarted ? (
                 /* Setup Phase */
                 <div className="flex flex-col items-center w-full animate-rev">
                   <div className="w-full max-w-md mb-12 relative group">
@@ -189,8 +193,7 @@ export default function Home() {
               ) : (
                 /* Active Session */
                 <StudySession initialDuration={studyTime} isCommuteMode={isCommuteMode} />
-              )
-             
+              )}
             </div>
           </div>
         </div>
