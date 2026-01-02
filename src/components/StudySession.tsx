@@ -4,12 +4,19 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import Webcam from 'react-webcam';
 import * as tf from '@tensorflow/tfjs';
 import * as blazeface from '@tensorflow-models/blazeface';
-import { Play, Pause, Scan, EyeOff, CheckCircle2, Maximize2 } from 'lucide-react';
+import { Play, Pause, Scan, CheckCircle2, Plus, Trash2, X } from 'lucide-react';
+import { useLocalStorage } from '../hooks/useLocalStorage';
 
 const SPONSORS = [
     { name: 'Physics Wala', text: 'Master Mode Active', color: '#1A1D21', textCol: '#CCFF00' },
     { name: 'Academic', text: 'Telemetry Online', color: '#1A1D21', textCol: '#CCFF00' }
 ];
+
+interface Task {
+    id: string;
+    text: string;
+    completed: boolean;
+}
 
 interface StudySessionProps {
     initialDuration: number; // in minutes
@@ -17,13 +24,22 @@ interface StudySessionProps {
 }
 
 export default function StudySession({ initialDuration = 25, isCommuteMode = false }: StudySessionProps) {
+    // PERSISTENCE: Using custom hook for "Senior Dev" robust state
+    const [timeLeft, setTimeLeft] = useLocalStorage<number>('focus_timer_left', initialDuration * 60, 1);
+    const [points, setPoints] = useLocalStorage<number>('user_xp_points', 0, 1);
+    const [tasks, setTasks] = useLocalStorage<Task[]>('user_tasks', [], 1);
+
+    // Volatile state (doesn't need persistence across reloads usually, or handled differently)
     const [isActive, setIsActive] = useState(false);
-    const [timeLeft, setTimeLeft] = useState(initialDuration * 60);
-    const [points, setPoints] = useState(0);
     const [model, setModel] = useState<any>(null);
     const [isFaceDetected, setIsFaceDetected] = useState(true);
     const [isTabActive, setIsTabActive] = useState(true);
     const [permissionRequested, setPermissionRequested] = useState(false);
+
+    // UI State for Tasks
+    const [newTask, setNewTask] = useState('');
+    const [showTasks, setShowTasks] = useState(false);
+
     const webcamRef = useRef<Webcam>(null);
     const timerRef = useRef<NodeJS.Timeout>(null);
     const [modelError, setModelError] = useState(false);
@@ -142,15 +158,7 @@ export default function StudySession({ initialDuration = 25, isCommuteMode = fal
         }
     };
 
-    // Persistence
-    useEffect(() => {
-        const savedPoints = localStorage.getItem('userParams_points');
-        if (savedPoints) setPoints(parseInt(savedPoints));
-    }, []);
-
-    useEffect(() => {
-        localStorage.setItem('userParams_points', points.toString());
-    }, [points]);
+    // Persistence handled by useLocalStorage hook now ("Senior Dev" approach)
 
     // Load AI Model
     useEffect(() => {
