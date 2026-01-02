@@ -6,6 +6,7 @@ import * as tf from '@tensorflow/tfjs';
 import * as blazeface from '@tensorflow-models/blazeface';
 import { Play, Pause, Scan, CheckCircle2, Plus, Trash2, X } from 'lucide-react';
 import { useLocalStorage } from '../hooks/useLocalStorage';
+import { useTimer } from '../hooks/useTimer';
 
 const SPONSORS = [
     { name: 'Physics Wala', text: 'Master Mode Active', color: '#1A1D21', textCol: '#CCFF00' },
@@ -25,7 +26,7 @@ interface StudySessionProps {
 
 export default function StudySession({ initialDuration = 25, isCommuteMode = false }: StudySessionProps) {
     // PERSISTENCE: Using custom hook for "Senior Dev" robust state
-    const [timeLeft, setTimeLeft] = useLocalStorage<number>('focus_timer_left', initialDuration * 60, 1);
+    // timeLeft moved to useTimer hook
     const [points, setPoints] = useLocalStorage<number>('user_xp_points', 0, 1);
     const [tasks, setTasks] = useLocalStorage<Task[]>('user_tasks', [], 1);
 
